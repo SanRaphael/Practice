@@ -266,7 +266,7 @@ int main()
         {
             blk[j] = new_mess[j + 8 * i];
             blk_hash[j] = hash_mess[j + 8 * i];
-            err_blk_hash[j] = err_mess[j + 8 * i];
+            err_blk_hash[j] = error_mess[j + 8 * i];
 
         }
         if (i == 0)
