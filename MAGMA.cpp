@@ -1,4 +1,4 @@
-//Шифр Magma(ГОСТ 28147-89) Произвольный текст, 32 раунда, сеть фейстеля, нелинейное преобразование, побитовые циклические сдвиги
+//ГГЁГґГ° Magma(ГѓГЋГ‘Г’ 28147-89) ГЏГ°Г®ГЁГ§ГўГ®Г«ГјГ­Г»Г© ГІГҐГЄГ±ГІ, 32 Г°Г ГіГ­Г¤Г , Г±ГҐГІГј ГґГҐГ©Г±ГІГҐГ«Гї, Г­ГҐГ«ГЁГ­ГҐГ©Г­Г®ГҐ ГЇГ°ГҐГ®ГЎГ°Г Г§Г®ГўГ Г­ГЁГҐ, ГЇГ®ГЎГЁГІГ®ГўГ»ГҐ Г¶ГЁГЄГ«ГЁГ·ГҐГ±ГЄГЁГҐ Г±Г¤ГўГЁГЈГЁ
 
 #include<iostream>
 #include<fstream>
@@ -8,7 +8,7 @@
 using namespace std;
 
 
-//таблица замен(нелинейное биективное преобразование)
+//ГІГ ГЎГ«ГЁГ¶Г  Г§Г Г¬ГҐГ­(Г­ГҐГ«ГЁГ­ГҐГ©Г­Г®ГҐ ГЎГЁГҐГЄГІГЁГўГ­Г®ГҐ ГЇГ°ГҐГ®ГЎГ°Г Г§Г®ГўГ Г­ГЁГҐ)
 static unsigned char Pi[8][16] =
 {
     {12,4,6,2,10,5,11,9,14,8,13,7,0,3,15,1},
@@ -21,11 +21,11 @@ static unsigned char Pi[8][16] =
     {1,7,14,13,0,5,8,3,4,15,10,6,9,12,11,2}
 };
 
-typedef uint8_t vect[4]; //блок размером 32 бита
+typedef uint8_t vect[4]; //ГЎГ«Г®ГЄ Г°Г Г§Г¬ГҐГ°Г®Г¬ 32 ГЎГЁГІГ 
 
-vect iter_key[32]; //итерационные ключи шифрования
+vect iter_key[32]; //ГЁГІГҐГ°Г Г¶ГЁГ®Г­Г­Г»ГҐ ГЄГ«ГѕГ·ГЁ ГёГЁГґГ°Г®ГўГ Г­ГЁГї
 
-//двоичное представление символа
+//Г¤ГўГ®ГЁГ·Г­Г®ГҐ ГЇГ°ГҐГ¤Г±ГІГ ГўГ«ГҐГ­ГЁГҐ Г±ГЁГ¬ГўГ®Г«Г 
 string toBinary(uint8_t value) {
     return bitset<8>(value).to_string();
 }
@@ -45,7 +45,7 @@ void print_mess(uint8_t* a, int size)
     }
     cout << endl;
 }
-//Функция для перестановок
+//Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї ГЇГҐГ°ГҐГ±ГІГ Г­Г®ГўГ®ГЄ
 void GOST_Magma_T(uint8_t* in_data, uint8_t* out_data)
 {
     uint8_t first_part_byte, sec_part_byte;
@@ -58,13 +58,13 @@ void GOST_Magma_T(uint8_t* in_data, uint8_t* out_data)
         out_data[i] = (sec_part_byte << 4) | first_part_byte;
     }
 }
-//Функция сложения по модулю 2
+//Г”ГіГ­ГЄГ¶ГЁГї Г±Г«Г®Г¦ГҐГ­ГЁГї ГЇГ® Г¬Г®Г¤ГіГ«Гѕ 2
 void GOST_Magma_XOR_2(uint8_t* a, uint8_t* b, uint8_t* c)
 {
     for (int i = 0; i < 4; i++)
         c[i] = a[i] ^ b[i];
 }
-//Функция сложения по модуля 2 в степени 32
+//Г”ГіГ­ГЄГ¶ГЁГї Г±Г«Г®Г¦ГҐГ­ГЁГї ГЇГ® Г¬Г®Г¤ГіГ«Гї 2 Гў Г±ГІГҐГЇГҐГ­ГЁ 32
 void GOST_Magma_XOR_2deg32(uint8_t* a, uint8_t* b, uint8_t* c)
 {
     unsigned int internal = 0;
@@ -74,7 +74,7 @@ void GOST_Magma_XOR_2deg32(uint8_t* a, uint8_t* b, uint8_t* c)
         c[i] = internal & 0xff;
     }
 }
-//Функция, включающая сложение итерационного ключа и левого подблока по модулю 2 в степени 32, нелинейное биективное преобразование и циклический сдвиг
+//Г”ГіГ­ГЄГ¶ГЁГї, ГўГЄГ«ГѕГ·Г ГѕГ№Г Гї Г±Г«Г®Г¦ГҐГ­ГЁГҐ ГЁГІГҐГ°Г Г¶ГЁГ®Г­Г­Г®ГЈГ® ГЄГ«ГѕГ·Г  ГЁ Г«ГҐГўГ®ГЈГ® ГЇГ®Г¤ГЎГ«Г®ГЄГ  ГЇГ® Г¬Г®Г¤ГіГ«Гѕ 2 Гў Г±ГІГҐГЇГҐГ­ГЁ 32, Г­ГҐГ«ГЁГ­ГҐГ©Г­Г®ГҐ ГЎГЁГҐГЄГІГЁГўГ­Г®ГҐ ГЇГ°ГҐГ®ГЎГ°Г Г§Г®ГўГ Г­ГЁГҐ ГЁ Г¶ГЁГЄГ«ГЁГ·ГҐГ±ГЄГЁГ© Г±Г¤ГўГЁГЈ
 void GOST_Magma_g(uint8_t* k, uint8_t* a, uint8_t* out_data)
 {
     uint8_t internal[4];
@@ -91,7 +91,7 @@ void GOST_Magma_g(uint8_t* k, uint8_t* a, uint8_t* out_data)
     out_data[2] = out_data_32 >> 16;
     out_data[3] = out_data_32 >> 24;
 }
-//Функция сложения результата g и правого подблока по модулю 2 и итогового формирования нового левого и правого подблока
+//Г”ГіГ­ГЄГ¶ГЁГї Г±Г«Г®Г¦ГҐГ­ГЁГї Г°ГҐГ§ГіГ«ГјГІГ ГІГ  g ГЁ ГЇГ°Г ГўГ®ГЈГ® ГЇГ®Г¤ГЎГ«Г®ГЄГ  ГЇГ® Г¬Г®Г¤ГіГ«Гѕ 2 ГЁ ГЁГІГ®ГЈГ®ГўГ®ГЈГ® ГґГ®Г°Г¬ГЁГ°Г®ГўГ Г­ГЁГї Г­Г®ГўГ®ГЈГ® Г«ГҐГўГ®ГЈГ® ГЁ ГЇГ°Г ГўГ®ГЈГ® ГЇГ®Г¤ГЎГ«Г®ГЄГ 
 void GOST_Magma_G(uint8_t* k, uint8_t* a, uint8_t* out_data, bool f)
 {
     uint8_t a_0[4];
@@ -125,7 +125,7 @@ void GOST_Magma_G(uint8_t* k, uint8_t* a, uint8_t* out_data, bool f)
     }
 
 }
-//Функция для разбиения ключа на восемь подключей
+//Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї Г°Г Г§ГЎГЁГҐГ­ГЁГї ГЄГ«ГѕГ·Г  Г­Г  ГўГ®Г±ГҐГ¬Гј ГЇГ®Г¤ГЄГ«ГѕГ·ГҐГ©
 vector<vector<uint8_t>> split_key(uint8_t* key)
 {
     vector<vector<uint8_t>> part_of_key(8, vector<uint8_t>(4, 0));
@@ -140,7 +140,7 @@ vector<vector<uint8_t>> split_key(uint8_t* key)
     }
     return part_of_key;
 }
-//Функция для определение итерационных(раундовых) ключей
+//Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ГЁГҐ ГЁГІГҐГ°Г Г¶ГЁГ®Г­Г­Г»Гµ(Г°Г ГіГ­Г¤Г®ГўГ»Гµ) ГЄГ«ГѕГ·ГҐГ©
 void GOST_Magma_Expand_Key(uint8_t* key)
 {
     vector<vector<uint8_t>> sp_key = split_key(key);
@@ -157,7 +157,7 @@ void GOST_Magma_Expand_Key(uint8_t* key)
     {
         memcpy(iter_key[i], sp_key_arr[i % 8], 4);
     }
-    printf("Раундовые ключи:\n");
+    printf("ГђГ ГіГ­Г¤Г®ГўГ»ГҐ ГЄГ«ГѕГ·ГЁ:\n");
     int i;
     for (i = 0; i < 32; i++)
     {
@@ -165,7 +165,7 @@ void GOST_Magma_Expand_Key(uint8_t* key)
         cout << endl;
     }
 }
-//Функция для шифрования блока
+//Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї ГёГЁГґГ°Г®ГўГ Г­ГЁГї ГЎГ«Г®ГЄГ 
 void GOST_Magma_Encrypt(uint8_t* blk, uint8_t* out_blk)
 {
     GOST_Magma_G(iter_key[0], blk, out_blk, true);
@@ -173,7 +173,7 @@ void GOST_Magma_Encrypt(uint8_t* blk, uint8_t* out_blk)
         GOST_Magma_G(iter_key[i], out_blk, out_blk, true);
     GOST_Magma_G(iter_key[31], out_blk, out_blk, false);
 }
-//Функция для расшифровки блока
+//Г”ГіГ­ГЄГ¶ГЁГї Г¤Г«Гї Г°Г Г±ГёГЁГґГ°Г®ГўГЄГЁ ГЎГ«Г®ГЄГ 
 void GOST_Magma_Decrypt(uint8_t* blk, uint8_t* out_blk)
 {
     GOST_Magma_G(iter_key[31], blk, out_blk, true);
@@ -187,7 +187,7 @@ void GOST_Magma_XOR_2_blk(uint8_t* a, uint8_t* b, uint8_t* c)
     for (int i = 0; i < 8; i++)
         c[i] = a[i] ^ b[i];
 }
-//В главной функции реализовано шифрование и дешифрование сообщения
+//Г‚ ГЈГ«Г ГўГ­Г®Г© ГґГіГ­ГЄГ¶ГЁГЁ Г°ГҐГ Г«ГЁГ§Г®ГўГ Г­Г® ГёГЁГґГ°Г®ГўГ Г­ГЁГҐ ГЁ Г¤ГҐГёГЁГґГ°Г®ГўГ Г­ГЁГҐ Г±Г®Г®ГЎГ№ГҐГ­ГЁГї
 int main()
 {
     setlocale(LC_ALL, "Russian");
@@ -217,9 +217,9 @@ int main()
     int length = 0;
     if (size % 8 != 0) length = size + (8 - size % 8);
     else length = size;
-    cout << "Длина дополненного сообщения:" << endl;
+    cout << "Г„Г«ГЁГ­Г  Г¤Г®ГЇГ®Г«Г­ГҐГ­Г­Г®ГЈГ® Г±Г®Г®ГЎГ№ГҐГ­ГЁГї:" << endl;
     cout << length << endl;
-    cout << "Бинарный вид сообщения:" << endl;
+    cout << "ГЃГЁГ­Г Г°Г­Г»Г© ГўГЁГ¤ Г±Г®Г®ГЎГ№ГҐГ­ГЁГї:" << endl;
     print_binary_mess(mess, size);
     uint8_t* new_mess = new uint8_t[length];
     uint8_t* hash_mess = new uint8_t[length];
@@ -231,11 +231,11 @@ int main()
         error_mess[i] = mess[i];
     }
     error_mess[0] = 64;
-    //Заполняем нулевыми байтами последний блок
+    //Г‡Г ГЇГ®Г«Г­ГїГҐГ¬ Г­ГіГ«ГҐГўГ»Г¬ГЁ ГЎГ Г©ГІГ Г¬ГЁ ГЇГ®Г±Г«ГҐГ¤Г­ГЁГ© ГЎГ«Г®ГЄ
     if (length > size)
     {
         new_mess[size] = 0;
-        hash_mess[size] = 128; // для хэш функции дополнение последнего блока начинается с 10000000
+        hash_mess[size] = 128; // Г¤Г«Гї ГµГЅГё ГґГіГ­ГЄГ¶ГЁГЁ Г¤Г®ГЇГ®Г«Г­ГҐГ­ГЁГҐ ГЇГ®Г±Г«ГҐГ¤Г­ГҐГЈГ® ГЎГ«Г®ГЄГ  Г­Г Г·ГЁГ­Г ГҐГІГ±Гї Г± 10000000
         error_mess[size] = 128;
         for (int i = size + 1; i < length; i++)
         {
@@ -244,9 +244,9 @@ int main()
             error_mess[i] = 0;
         }
     }
-    cout << "Бинарный вид дополненного сообщения:" << endl;
+    cout << "ГЃГЁГ­Г Г°Г­Г»Г© ГўГЁГ¤ Г¤Г®ГЇГ®Г«Г­ГҐГ­Г­Г®ГЈГ® Г±Г®Г®ГЎГ№ГҐГ­ГЁГї:" << endl;
     print_binary_mess(new_mess, length);
-    cout << "Бинарный вид изменненого сообщения на 1 бит:" << endl;
+    cout << "ГЃГЁГ­Г Г°Г­Г»Г© ГўГЁГ¤ ГЁГ§Г¬ГҐГ­Г­ГҐГ­Г®ГЈГ® Г±Г®Г®ГЎГ№ГҐГ­ГЁГї Г­Г  1 ГЎГЁГІ:" << endl;
     print_binary_mess(error_mess, length);
     int block_num = length / 8;
     uint8_t* enc_mess = new uint8_t[length];
@@ -266,11 +266,13 @@ int main()
         {
             blk[j] = new_mess[j + 8 * i];
             blk_hash[j] = hash_mess[j + 8 * i];
+            err_blk_hash[j] = err_mess[j + 8 * i];
+
         }
         if (i == 0)
         {
             GOST_Magma_Encrypt(blk_hash, hash_value);
-            GOST_Magma_Encrypt(blk_hash, err_hash_value);
+            GOST_Magma_Encrypt(err_blk_hash, err_hash_value);
         }
         else
         {
@@ -293,20 +295,20 @@ int main()
             dec_mess[k + 8 * i] = out_blk[k];
         }
     }
-    cout << "Зашифрованное сообщение:" << endl;
+    cout << "Г‡Г ГёГЁГґГ°Г®ГўГ Г­Г­Г®ГҐ Г±Г®Г®ГЎГ№ГҐГ­ГЁГҐ:" << endl;
     printf("%s\n", enc_mess);
     print_binary_mess(enc_mess, length);
     for (int i = 0; i < length; i++) printf("%02x", enc_mess[i]);
     printf("\n");
-    cout << "Расшифрованное сообщение:" << endl;
+    cout << "ГђГ Г±ГёГЁГґГ°Г®ГўГ Г­Г­Г®ГҐ Г±Г®Г®ГЎГ№ГҐГ­ГЁГҐ:" << endl;
     printf("%.*s\n", size, dec_mess);
     print_binary_mess(dec_mess, size);
     for (int i = 0; i < size; i++) printf("%02x", dec_mess[i]);
     printf("\n");
-    cout << "Полученное хэш-значение для данного сообщения:" << endl;
+    cout << "ГЏГ®Г«ГіГ·ГҐГ­Г­Г®ГҐ ГµГЅГё-Г§Г­Г Г·ГҐГ­ГЁГҐ Г¤Г«Гї Г¤Г Г­Г­Г®ГЈГ® Г±Г®Г®ГЎГ№ГҐГ­ГЁГї:" << endl;
     for (int i = 0; i < 8; i++) printf("%02x", hash_value[i]);
     printf("\n");
-    cout << "Полученное хэш-значение для измененного на 1 бит сообщения:" << endl;
+    cout << "ГЏГ®Г«ГіГ·ГҐГ­Г­Г®ГҐ ГµГЅГё-Г§Г­Г Г·ГҐГ­ГЁГҐ Г¤Г«Гї ГЁГ§Г¬ГҐГ­ГҐГ­Г­Г®ГЈГ® Г­Г  1 ГЎГЁГІ Г±Г®Г®ГЎГ№ГҐГ­ГЁГї:" << endl;
     for (int i = 0; i < 8; i++) printf("%02x", err_hash_value[i]);
     printf("\n");
     delete[] mess;
