@@ -1,0 +1,30 @@
+#include"main.h"
+
+using namespace std;
+
+
+int main()
+{
+    /*
+    StudentGenerator generator;
+    for (int i = 0; i < 20; ++i) {
+        Student s = generator.generate();
+        cout << s.name << " " << s.surname << ": "
+            << s.math << ", " << s.physics << ", " << s.cs
+            << " (Avg: " << s.average << ", Behavior: " << s.behavior << ")\n";
+    }
+    */
+    BTree<4> db;
+
+    for (int i = 0; i < 100; ++i) {
+        db.InsertRandom();
+    }
+
+    db.Show();
+
+    db.Delete(72);
+
+    db.Show();
+
+    return 0;
+}

@@ -1,0 +1,321 @@
+#include<iostream>
+#include<vector>
+#include<queue>
+#include <cmath>
+#include<string>
+
+using namespace std;
+
+template <int t>
+class BTree {
+private:
+    struct BTreeNode {
+        vector<int> keys;
+        vector<BTreeNode*> children;
+        bool isLeaf;
+
+        BTreeNode(bool leaf = true) : isLeaf(leaf) {}
+
+        size_t findKeyPos(int key) {
+            return lower_bound(keys.begin(), keys.end(), key) - keys.begin();
+        }
+    };
+
+    BTreeNode* root;
+
+    bool FindNode(const BTreeNode* node, int key) {
+        size_t pos = node->findKeyPos(key);
+        if (pos < node->keys.size() && node->keys[pos] == key) {
+            return true;
+        }
+        return node->isLeaf ? false : FindNode(node->children[pos], key);
+    }
+    void InsertKey(BTreeNode* node, int key) {
+        size_t pos = node->findKeyPos(key);
+
+        if (node->isLeaf) {
+            node->keys.insert(node->keys.begin() + pos, key);
+        }
+        else {
+            if (node->children[pos]->keys.size() == 2 * t - 1) {
+                Split(node, pos);
+                if (key > node->keys[pos]) pos++;
+            }
+            InsertKey(node->children[pos], key);
+        }
+    }
+    void Split(BTreeNode* parent, size_t position)
+    {
+        BTreeNode* child = parent->children[position];
+        BTreeNode* newChild = new BTreeNode(child->isLeaf);
+
+        newChild->keys.assign(child->keys.begin() + t, child->keys.end());
+        if (!child->isLeaf) {
+            newChild->children.assign(child->children.begin() + t,
+                child->children.end());
+        }
+
+        int middleKey = child->keys[t - 1];
+        parent->keys.insert(parent->keys.begin() + position, middleKey);
+        parent->children.insert(parent->children.begin() + position + 1, newChild);
+
+        child->keys.resize(t - 1);
+        if (!child->isLeaf) {
+            child->children.resize(t);
+        }
+    }
+    
+    void ShowTree(BTreeNode* node)
+    {
+        //In-Order
+        /*
+        if (node->isLeaf)
+        {
+            for (int key : node->keys)
+                cout << key << " ";
+            return;
+        }
+
+        for (int i = 0; i < node->children.size(); i++)
+        {
+            ShowTree(node->children[i]);
+            if (i < node->keys.size())
+                cout << node->keys[i] << " ";
+        }
+        */
+        //BFS
+        
+        queue<BTreeNode*> q;
+        q.push(node);
+        while (q.size() != 0)
+        {
+            int levelSize = q.size();
+            for (int i = 0; i < levelSize; i++)
+            {
+                BTreeNode* current = q.front();
+                q.pop();
+                cout << "[";
+                for (int i = 0; i < current->keys.size(); i++)
+                    cout << current->keys[i] << " ";
+                cout << "]";
+                for (int i = 0; i < current->children.size(); i++)
+                {
+                    if (current->children[i])
+                        q.push(current->children[i]);
+                }
+            }
+            cout << endl;
+        }
+    }
+
+    void Delete(BTreeNode* node, int key) {
+        size_t index = node->findKeyPos(key);
+
+        if (index < node->keys.size() && node->keys[index] == key) {
+            if (node->isLeaf) {
+                RemoveFromLeaf(node, index);
+            }
+            else {
+                RemoveFromInternalNode(node, index);
+            }
+        }
+        else {
+            if (node->isLeaf) return;
+
+            // Проверка, нужно ли заполнить ребенка
+            bool flag = (index == node->keys.size());
+            if (node->children[index]->keys.size() < t) {
+                Fill(node, index);
+            }
+
+            // Рекурсивно удаляем из соответствующего ребенка
+            if (flag && index > node->keys.size()) {
+                Delete(node->children[index - 1], key);
+            }
+            else {
+                Delete(node->children[index], key);
+            }
+        }
+    }
+    void RemoveFromLeaf(BTreeNode* node, size_t index) {
+        node->keys.erase(node->keys.begin() + index);
+    }
+
+    void RemoveFromInternalNode(BTreeNode* node, size_t index) {
+        int key = node->keys[index];
+
+        // Если левый ребенок имеет >= t ключей
+        if (node->children[index]->keys.size() >= t) {
+            int predecessor = GetPredecessor(node, index);
+            node->keys[index] = predecessor;
+            Delete(node->children[index], predecessor);
+        }
+        // Если правый ребенок имеет >= t ключей
+        else if (node->children[index + 1]->keys.size() >= t) {
+            int successor = GetSuccessor(node, index);
+            node->keys[index] = successor;
+            Delete(node->children[index + 1], successor);
+        }
+        // Если оба ребенка имеют t-1 ключей - сливаем
+        else {
+            Merge(node, index);
+            Delete(node->children[index], key);
+        }
+    }
+
+    // Получить предыдущий ключ (максимальный в левом поддереве)
+    int GetPredecessor(BTreeNode* node, size_t index) {
+        BTreeNode* current = node->children[index];
+        while (!current->isLeaf)
+            current = current->children.back();
+        return current->keys.back();
+    }
+
+    // Получить следующий ключ (минимальный в правом поддереве)
+    int GetSuccessor(BTreeNode* node, size_t index) {
+        BTreeNode* current = node->children[index + 1];
+        while (!current->isLeaf)
+            current = current->children.front();
+        return current->keys.front();
+    }
+
+    // Слияние узлов
+    void Merge(BTreeNode* node, size_t index) {
+        BTreeNode* child = node->children[index];
+        BTreeNode* sibling = node->children[index + 1];
+
+        // Перемещаем ключ из родителя в ребенка
+        child->keys.push_back(node->keys[index]);
+
+        // Копируем ключи из соседа
+        child->keys.insert(child->keys.end(), sibling->keys.begin(), sibling->keys.end());
+
+        // Копируем детей, если есть
+        if (!child->isLeaf) {
+            child->children.insert(child->children.end(), sibling->children.begin(), sibling->children.end());
+        }
+
+        // Удаляем ключ из родителя и ссылку на соседа
+        node->keys.erase(node->keys.begin() + index);
+        node->children.erase(node->children.begin() + index + 1);
+
+        delete sibling;
+    }
+
+    void Fill(BTreeNode* node, size_t index) {
+        // Попробовать взять ключ у левого ребенка
+        if (index != 0 && node->children[index - 1]->keys.size() >= t) {
+            BorrowFromLeft(node, index);
+        }
+        // Попробовать взять ключ у правого ребенка
+        else if (index != node->keys.size() && node->children[index + 1]->keys.size() >= t) {
+            BorrowFromRight(node, index);
+        }
+        // Слить с детьми, если нельзя взять ключ
+        else {
+            if (index != node->keys.size())
+                Merge(node, index);
+            else
+                Merge(node, index - 1);
+        }
+    }
+
+    // Взять ключ у левого ребенка
+    void BorrowFromLeft(BTreeNode* node, size_t index) {
+        BTreeNode* child = node->children[index];
+        BTreeNode* sibling = node->children[index - 1];
+
+        // Сдвигаем ключи вправо
+        child->keys.insert(child->keys.begin(), node->keys[index - 1]);
+
+        if (!child->isLeaf) {
+            child->children.insert(child->children.begin(), sibling->children.back());
+            sibling->children.pop_back();
+        }
+
+        // Перемещаем ключ из брата в родителя
+        node->keys[index - 1] = sibling->keys.back();
+        sibling->keys.pop_back();
+    }
+
+    // Взять ключ у правого ребенка
+    void BorrowFromRight(BTreeNode* node, size_t index) {
+        BTreeNode* child = node->children[index];
+        BTreeNode* sibling = node->children[index + 1];
+
+        // Сдвигаем ключи влево
+        child->keys.push_back(node->keys[index]);
+
+        if (!child->isLeaf) {
+            child->children.push_back(sibling->children.front());
+            sibling->children.erase(sibling->children.begin());
+        }
+
+        // Перемещаем ключ из брата в родителя
+        node->keys[index] = sibling->keys.front();
+        sibling->keys.erase(sibling->keys.begin());
+    }
+
+public:
+    BTree() : root(nullptr) {}
+
+    ~BTree() {
+        if (root) {
+            delete root;
+        }
+    }
+
+    bool Find(int key) {
+        return root ? FindNode(root, key) : false;
+    }
+    
+    void Insert(int key)
+    {
+        if (!root) {
+            root = new BTreeNode(true);
+            root->keys.push_back(key);
+            return;
+        }
+        if (root->keys.size() == 2 * t - 1) {
+            BTreeNode* newRoot = new BTreeNode(false);
+            newRoot->children.push_back(root);
+            Split(newRoot, 0);
+            root = newRoot;
+        }
+        InsertKey(root, key);
+    }
+    void Show()
+    {
+        ShowTree(root);
+    }
+    void Delete(int key) {
+        if (!root) return;
+
+        Delete(root, key);
+
+        if (root->keys.empty() && !root->isLeaf) {
+            BTreeNode* tmp = root;
+            root = root->children[0];
+            delete tmp;
+        }
+    }
+};
+
+int main()
+{
+    BTree<2> tree;
+    for (int i = 0; i < 20; i++) {
+        tree.Insert(i);
+    }
+
+    cout << "Before deletion:" << endl;
+    tree.Show();
+
+    tree.Delete(5);
+    tree.Delete(10);
+    tree.Delete(15);
+
+    cout << "After deletion:" << endl;
+    tree.Show();
+    return 0;
+}

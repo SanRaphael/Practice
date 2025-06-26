@@ -1,0 +1,368 @@
+#pragma once
+#include<iostream>
+#include<vector>
+#include<queue>
+#include<cmath>
+#include<string>
+#include <random>
+#include <algorithm>
+
+using namespace std;
+
+enum Behavior { PROBLEMATIC, GOOD, RESPECTABLE };
+
+struct Student {
+    string name;
+    string surname;
+    int math;
+    int physics;
+    int cs;
+    Behavior behavior;
+    float average;
+
+    Student() : name(""), surname(""), math(0), physics(0), cs(0), behavior(GOOD), average(0) {}
+
+    Student(string n, string s, int m, int p, int c, Behavior b)
+        : name(n), surname(s), math(m), physics(p), cs(c), behavior(b) {
+        average = (math + physics + cs) / 3.0f;
+    }
+
+    friend ostream& operator<<(ostream& os, const Student& s) {
+        os << s.name << " " << s.surname << " (";
+        os << "Math: " << s.math << ", ";
+        os << "Physics: " << s.physics << ", ";
+        os << "CS: " << s.cs << ") ";
+        os << "Avg: " << s.average << ", ";
+        os << "Behavior: ";
+        switch (s.behavior) {
+        case PROBLEMATIC: os << "PROBLEMATIC"; break;
+        case GOOD: os << "GOOD"; break;
+        case RESPECTABLE: os << "RESPECTABLE"; break;
+        }
+        return os;
+    }
+};
+
+class StudentGenerator {
+    vector<string> names = { "Anna", "Ivan", "Maria", "Alex", "Olga" };
+    vector<string> surnames = { "Ivanov", "Petrov", "Sidorov", "Smirnov", "Kuznetsov" };
+    random_device rd;
+    mt19937 gen{ rd() };
+
+    int generateGrade() {
+        discrete_distribution<> range_dist{ 10, 20, 30, 30, 10 };
+        int range = range_dist(gen);
+        int min_score, max_score;
+
+        switch (range) {
+        case 0: min_score = 0;  max_score = 20; break;
+        case 1: min_score = 20; max_score = 40; break;
+        case 2: min_score = 40; max_score = 60; break;
+        case 3: min_score = 60; max_score = 80; break;
+        case 4: min_score = 80; max_score = 100; break;
+        default: min_score = 0; max_score = 100;
+        }
+
+        uniform_int_distribution<> score_dist(min_score, max_score);
+        return score_dist(gen);
+    }
+
+    Behavior generateBehavior() {
+        discrete_distribution<> behavior_dist{ 20, 50, 30 };
+        return static_cast<Behavior>(behavior_dist(gen));
+    }
+
+public:
+    Student generate() {
+        uniform_int_distribution<> name_dist(0, names.size() - 1);
+        uniform_int_distribution<> surname_dist(0, surnames.size() - 1);
+
+        return Student(
+            names[name_dist(gen)],
+            surnames[surname_dist(gen)],
+            generateGrade(),
+            generateGrade(),
+            generateGrade(),
+            generateBehavior()
+        );
+    }
+};
+
+template <int t>
+class BTree {
+private:
+    struct BTreeNode {
+        vector<Student> students;
+        vector<BTreeNode*> children;
+        bool isLeaf;
+
+        BTreeNode(bool leaf = true) : isLeaf(leaf) {}
+
+        size_t findStudentPos(float avg) const {
+            auto it = lower_bound(students.begin(), students.end(), avg,
+                [](const Student& s, float val) { return s.average < val; });
+            return it - students.begin();
+        }
+    };
+
+    BTreeNode* root;
+    StudentGenerator generator;
+
+    bool FindNode(const BTreeNode* node, float avg) const {
+        size_t pos = node->findStudentPos(avg);
+        if (pos < node->students.size() && abs(node->students[pos].average - avg) < 0.001f) {
+            return true;
+        }
+        return node->isLeaf ? false : FindNode(node->children[pos], avg);
+    }
+
+    void InsertStudent(BTreeNode* node, const Student& student) {
+        size_t pos = node->findStudentPos(student.average);
+
+        if (node->isLeaf) {
+            node->students.insert(node->students.begin() + pos, student);
+        }
+        else {
+            if (node->children[pos]->students.size() == 2 * t - 1) {
+                Split(node, pos);
+                if (student.average > node->students[pos].average) pos++;
+            }
+            InsertStudent(node->children[pos], student);
+        }
+    }
+
+    void Split(BTreeNode* parent, size_t position) {
+        BTreeNode* child = parent->children[position];
+        BTreeNode* newChild = new BTreeNode(child->isLeaf);
+
+        newChild->students.assign(child->students.begin() + t, child->students.end());
+        if (!child->isLeaf) {
+            newChild->children.assign(child->children.begin() + t, child->children.end());
+        }
+
+        Student middleStudent = child->students[t - 1];
+        parent->students.insert(parent->students.begin() + position, middleStudent);
+        parent->children.insert(parent->children.begin() + position + 1, newChild);
+
+        child->students.resize(t - 1);
+        if (!child->isLeaf) {
+            child->children.resize(t);
+        }
+    }
+
+    void ShowTree(BTreeNode* node) {
+        queue<BTreeNode*> q;
+        q.push(node);
+        int level = 0;
+
+        while (!q.empty()) {
+            int levelSize = q.size();
+            cout << "Level " << level++ << ":\n";
+
+            for (int i = 0; i < levelSize; i++) {
+                BTreeNode* current = q.front();
+                q.pop();
+
+                cout << "  [";
+                for (const auto& student : current->students) {
+                    cout << student.name << " " << student.surname << " ("
+                        << student.average << ") | ";
+                }
+                cout << "]\n";
+
+                if (!current->isLeaf) {
+                    for (BTreeNode* child : current->children) {
+                        if (child) q.push(child);
+                    }
+                }
+            }
+            cout << endl;
+        }
+    }
+
+    void RemoveFromLeaf(BTreeNode* node, size_t index) {
+        node->students.erase(node->students.begin() + index);
+    }
+
+    void RemoveFromInternalNode(BTreeNode* node, size_t index) {
+        float avg = node->students[index].average;
+
+        if (node->children[index]->students.size() >= t) {
+            Student predecessor = GetPredecessor(node, index);
+            node->students[index] = predecessor;
+            Delete(node->children[index], predecessor.average);
+        }
+        else if (node->children[index + 1]->students.size() >= t) {
+            Student successor = GetSuccessor(node, index);
+            node->students[index] = successor;
+            Delete(node->children[index + 1], successor.average);
+        }
+        else {
+            Merge(node, index);
+            Delete(node->children[index], avg);
+        }
+    }
+
+    Student GetPredecessor(BTreeNode* node, size_t index) {
+        BTreeNode* current = node->children[index];
+        while (!current->isLeaf)
+            current = current->children.back();
+        return current->students.back();
+    }
+
+    Student GetSuccessor(BTreeNode* node, size_t index) {
+        BTreeNode* current = node->children[index + 1];
+        while (!current->isLeaf)
+            current = current->children.front();
+        return current->students.front();
+    }
+
+    void Merge(BTreeNode* node, size_t index) {
+        BTreeNode* child = node->children[index];
+        BTreeNode* sibling = node->children[index + 1];
+
+        child->students.push_back(node->students[index]);
+        child->students.insert(child->students.end(), sibling->students.begin(), sibling->students.end());
+
+        if (!child->isLeaf) {
+            child->children.insert(child->children.end(), sibling->children.begin(), sibling->children.end());
+        }
+
+        node->students.erase(node->students.begin() + index);
+        node->children.erase(node->children.begin() + index + 1);
+
+        delete sibling;
+    }
+
+    void Fill(BTreeNode* node, size_t index) {
+        if (index != 0 && node->children[index - 1]->students.size() >= t) {
+            BorrowFromLeft(node, index);
+        }
+        else if (index != node->students.size() && node->children[index + 1]->students.size() >= t) {
+            BorrowFromRight(node, index);
+        }
+        else {
+            if (index != node->students.size())
+                Merge(node, index);
+            else
+                Merge(node, index - 1);
+        }
+    }
+
+    void BorrowFromLeft(BTreeNode* node, size_t index) {
+        BTreeNode* child = node->children[index];
+        BTreeNode* sibling = node->children[index - 1];
+
+        child->students.insert(child->students.begin(), node->students[index - 1]);
+
+        if (!child->isLeaf) {
+            child->children.insert(child->children.begin(), sibling->children.back());
+            sibling->children.pop_back();
+        }
+
+        node->students[index - 1] = sibling->students.back();
+        sibling->students.pop_back();
+    }
+
+    void BorrowFromRight(BTreeNode* node, size_t index) {
+        BTreeNode* child = node->children[index];
+        BTreeNode* sibling = node->children[index + 1];
+
+        child->students.push_back(node->students[index]);
+
+        if (!child->isLeaf) {
+            child->children.push_back(sibling->children.front());
+            sibling->children.erase(sibling->children.begin());
+        }
+
+        node->students[index] = sibling->students.front();
+        sibling->students.erase(sibling->students.begin());
+    }
+
+    void Delete(BTreeNode* node, float avg) {
+        size_t index = node->findStudentPos(avg);
+
+        if (index < node->students.size() && abs(node->students[index].average - avg) < 0.001f) {
+            if (node->isLeaf) {
+                RemoveFromLeaf(node, index);
+            }
+            else {
+                RemoveFromInternalNode(node, index);
+            }
+        }
+        else {
+            if (node->isLeaf) return;
+
+            bool flag = (index == node->students.size());
+            if (node->children[index]->students.size() < t) {
+                Fill(node, index);
+            }
+
+            if (flag && index > node->students.size()) {
+                Delete(node->children[index - 1], avg);
+            }
+            else {
+                Delete(node->children[index], avg);
+            }
+        }
+    }
+
+public:
+    BTree() : root(nullptr) {}
+
+    ~BTree() {
+        if (root) {
+            Clear(root);
+        }
+    }
+
+    void Clear(BTreeNode* node) {
+        if (!node->isLeaf) {
+            for (BTreeNode* child : node->children) {
+                Clear(child);
+            }
+        }
+        delete node;
+    }
+
+    bool Find(float avg) const {
+        return root ? FindNode(root, avg) : false;
+    }
+
+    void Insert(const Student& student) {
+        if (!root) {
+            root = new BTreeNode(true);
+            root->students.push_back(student);
+            return;
+        }
+
+        if (root->students.size() == 2 * t - 1) {
+            BTreeNode* newRoot = new BTreeNode(false);
+            newRoot->children.push_back(root);
+            Split(newRoot, 0);
+            root = newRoot;
+        }
+        InsertStudent(root, student);
+    }
+
+    void InsertRandom() {
+        Insert(generator.generate());
+    }
+
+    void Show() {
+        if (root) ShowTree(root);
+        else cout << "Tree is empty\n";
+    }
+
+    void Delete(float avg) {
+        if (!root) return;
+
+        Delete(root, avg);
+
+        if (root->students.empty() && !root->isLeaf) {
+            BTreeNode* tmp = root;
+            root = root->children[0];
+            delete tmp;
+        }
+    }
+};
